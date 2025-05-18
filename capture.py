@@ -27,9 +27,18 @@ def capture_area():
     x, y, w, h = area
 
     with mss.mss() as sct:
-        monitor = {"top": y, "left": x, "width": w, "height": h}
-        sct_img = sct.grab(monitor)
+        monitor = sct.monitors[0]  # 전체 디스플레이 기준
+        monitor_x = monitor["left"]
+        monitor_y = monitor["top"]
 
-    img_np = np.array(sct_img)
+        region = {
+            "left": monitor_x + x,
+            "top": monitor_y + y,
+            "width": w,
+            "height": h,
+        }
 
-    return img_np
+        sct_img = sct.grab(region)
+        img_np = np.array(sct_img)
+        return img_np
+
