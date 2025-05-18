@@ -1,12 +1,13 @@
 {
     "ocrarea": [
+        101,
+        704,
         557,
-        791,
-        514,
-        111
+        155
     ],
     "fontsize": 12,
     "fontcolor": "d4f4dd",
     "interval": 3000,
-    "background_opacity": 50
+    "background_opacity": 50,
+    "performence": 1
 }

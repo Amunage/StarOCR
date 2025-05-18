@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QPushButton, QComboBox, QSlider,
-    QVBoxLayout, QHBoxLayout, QGridLayout, QLineEdit
+    QVBoxLayout, QHBoxLayout, QGridLayout, QLineEdit, QMessageBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
@@ -19,7 +19,7 @@ class ConfigUI(QWidget):
         self.setWindowTitle("StarOCR Config")
         self.setWindowIcon(QIcon("./data/scricon.ico"))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setFixedSize(200, 300)
+        self.setFixedSize(200, 340)
 
         data = setting.load_userdata()
 
@@ -32,9 +32,8 @@ class ConfigUI(QWidget):
         self.label_fontcolor = QLabel("Font Color")
         self.input_fontcolor = QLineEdit()
         self.input_fontcolor.setText(data.get("fontcolor", "d4f4dd"))
-  
 
-        self.label_interval = QLabel("Trans Interval")
+        self.label_interval = QLabel("OCR Interval")
         self.input_interval = QLineEdit()
         self.input_interval.setFixedWidth(60)
         self.input_interval.setText(str(int(data.get("interval", 3000) / 1000)))
@@ -47,8 +46,16 @@ class ConfigUI(QWidget):
         self.slider_opacity.setValue(data.get("background_opacity", 100))
         self.opacity_value_label = QLabel(str(data.get("background_opacity", 100)))
         self.opacity_value_label.setAlignment(Qt.AlignCenter)
-
         self.slider_opacity.valueChanged.connect(self.update_opacity_label)
+
+        self.label_perf = QLabel("Performance")
+        self.label_perf.setAlignment(Qt.AlignCenter)
+        self.slider_perf = QSlider(Qt.Horizontal)
+        self.slider_perf.setRange(1, 4)
+        self.slider_perf.setValue(data.get("performence", 2))
+        self.perf_value_label = QLabel(str(data.get("performence", 2)))
+        self.perf_value_label.setAlignment(Qt.AlignCenter)
+        self.slider_perf.valueChanged.connect(self.update_perf_label)
 
         self.btn_cancel = QPushButton("Cancle")
         self.btn_cancel.clicked.connect(self.close)
@@ -63,16 +70,16 @@ class ConfigUI(QWidget):
         self.label_seconds.setStyleSheet(UIstyle['label'])
         self.label_opacity.setStyleSheet(UIstyle['label'])
         self.opacity_value_label.setStyleSheet(UIstyle['label'])
+        self.label_perf.setStyleSheet(UIstyle['label'])
+        self.perf_value_label.setStyleSheet(UIstyle['label'])
 
         self.combo_fontsize.setStyleSheet(UIstyle['combobox'])
         self.input_fontcolor.setStyleSheet(UIstyle['lineedit'])
         self.input_interval.setStyleSheet(UIstyle['lineedit'])
-
         self.slider_opacity.setStyleSheet(UIstyle['slider'])
-
+        self.slider_perf.setStyleSheet(UIstyle['slider'])
         self.btn_cancel.setStyleSheet(UIstyle['button'])
         self.btn_confirm.setStyleSheet(UIstyle['button'])
-
 
         # 레이아웃 구성
         grid = QGridLayout()
@@ -88,9 +95,16 @@ class ConfigUI(QWidget):
         grid.addLayout(interval_layout, 2, 1)
 
         opacity_layout = QVBoxLayout()
+        opacity_layout.setSpacing(0)
         opacity_layout.addWidget(self.label_opacity)
         opacity_layout.addWidget(self.slider_opacity)
         opacity_layout.addWidget(self.opacity_value_label)
+
+        perf_layout = QVBoxLayout()
+        perf_layout.setSpacing(0)
+        perf_layout.addWidget(self.label_perf)
+        perf_layout.addWidget(self.slider_perf)
+        perf_layout.addWidget(self.perf_value_label)
 
         hbox_buttons = QHBoxLayout()
         hbox_buttons.addWidget(self.btn_cancel)
@@ -99,12 +113,16 @@ class ConfigUI(QWidget):
         main_layout = QVBoxLayout()
         main_layout.addLayout(grid)
         main_layout.addLayout(opacity_layout)
+        main_layout.addLayout(perf_layout)
         main_layout.addLayout(hbox_buttons)
 
         self.setLayout(main_layout)
 
     def update_opacity_label(self, value):
         self.opacity_value_label.setText(str(value))
+
+    def update_perf_label(self, value):
+        self.perf_value_label.setText(str(value))
 
     def save_settings(self):
         data = setting.userdata or {}
@@ -117,7 +135,22 @@ class ConfigUI(QWidget):
             data["interval"] = int(float(self.input_interval.text()) * 1000)
         except ValueError:
             data["interval"] = 3000  # fallback
+
         data["background_opacity"] = self.slider_opacity.value()
+
+
+        old_per_value = data.get("performence", 1)
+        new_per_value = self.slider_perf.value()
+        data["performence"] = new_per_value
+
+        if old_per_value != new_per_value:
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Restart Required")
+            msg.setText("Please restart the program.")
+            msg.setStyleSheet(UIstyle['messagebox'])
+            msg.exec_()
+
+
         setting.save_userdata(data)
         self.settings_applied.emit()
         self.close()

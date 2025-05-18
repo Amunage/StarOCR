@@ -1,16 +1,21 @@
 from transformers import pipeline
 import torch
 import os
-import psutil
 
-# CPU 제한
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-torch.set_num_threads(1)
-torch.set_num_interop_threads(1)
+import setting
 
-p = psutil.Process(os.getpid())
-p.cpu_affinity([0])
+setting.load_userdata()
+thread_count = setting.userdata.get("performence", 1)
+print(f"Thread Count : {thread_count}")
+
+os.environ["OMP_NUM_THREADS"] = f"{thread_count}"
+os.environ["MKL_NUM_THREADS"] = f"{thread_count}"
+torch.set_num_threads(thread_count)
+torch.set_num_interop_threads(thread_count)
+
+# import psutil
+# p = psutil.Process(os.getpid())
+# p.cpu_affinity([0])
 
 # GPU 제한 (있는 경우)
 if torch.cuda.is_available():

@@ -286,7 +286,7 @@ class MainWindow(QWidget):
 
             interval = setting.userdata.get("interval", 3000)
             self.ocr_timer.start(interval)
-            self.append_output(f"▶ Start Translation. (Interval: {interval/1000} s)")
+            self.append_output(f"▶ Start Translation.")
         else:
             self.stop_ocr()
             self.is_running = False  # ← 여기서 나중에 꺼지게!

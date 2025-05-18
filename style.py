@@ -248,6 +248,27 @@ logtalker = """
 
 loglabel = "color: white; background: transparent;"
 
+messagebox = """
+    QMessageBox {
+        background-color: rgba(35, 35, 35, 1);
+        color: white;
+        font-size: 12pt;
+    }
+    QLabel {
+        color: white;
+    }
+    QPushButton {
+        background-color: rgba(30, 30, 30, 1);
+        color: white;
+        border-radius: 5px;
+        padding: 5px 12px;
+    }
+    QPushButton:hover {
+        background-color: rgba(20, 20, 20, 1);
+        color: #7bdf08;
+    }
+"""
+
 ##################################################################
 
 UIstyle = {
@@ -267,4 +288,5 @@ UIstyle = {
     'logspeaker' : logspeaker,
     'logtalker' : logtalker,
     'loglabel' : loglabel,
+    'messagebox' : messagebox,
 }
