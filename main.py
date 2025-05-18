@@ -85,7 +85,7 @@ class MainWindow(QWidget):
         
         super().__init__()
         self.setWindowTitle("StarOCR")
-        self.setWindowIcon(QIcon("./data/scricon.png"))
+        self.setWindowIcon(QIcon("./data/scricon.ico"))
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_Hover)

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QPushButton, QSizePolicy
 from PyQt5.QtCore import Qt, QRect
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QIcon
 from tesseract import best_image_for_ocr
 from style import UIstyle 
 
@@ -17,6 +17,7 @@ class ImagePreview(QWidget):
     def __init__(self, original_image):
         super().__init__()
         self.setWindowTitle("StarOCR Preview")
+        self.setWindowIcon(QIcon("./data/scricon.ico"))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.resize(600, 400)
 

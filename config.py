@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGridLayout, QLineEdit
 )
 from PyQt5.QtCore import Qt, pyqtSignal
-
+from PyQt5.QtGui import QIcon
 from style import UIstyle
 
 import re
@@ -17,6 +17,7 @@ class ConfigUI(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("StarOCR Config")
+        self.setWindowIcon(QIcon("./data/scricon.ico"))
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setFixedSize(200, 300)
 

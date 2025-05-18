@@ -24,13 +24,13 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='StarOCR',
-    debug=True,
+    debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
+    strip=True,
     upx=True,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
-    uac_admin=True,
+    uac_admin=False,
     icon=f'{base_path}/data/scricon.ico'
 )
 
