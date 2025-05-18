@@ -11,7 +11,7 @@ build/
 dist/
 *.egg-info/
 
-
+Tesseract-OCR/
 screenshot/
 
 # 로그
