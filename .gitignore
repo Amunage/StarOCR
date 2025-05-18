@@ -11,7 +11,7 @@ build/
 dist/
 *.egg-info/
 
-Tesseract-OCR/
+
 screenshot/
 
 # 로그
@@ -23,3 +23,4 @@ screenshot/
 # 배치파일
 *.bat
 *.7z
+*.png
