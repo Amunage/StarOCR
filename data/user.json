@@ -1,0 +1,12 @@
+{
+    "ocrarea": [
+        330,
+        619,
+        547,
+        350
+    ],
+    "fontsize": 12,
+    "fontcolor": "d4f4dd",
+    "interval": 3000,
+    "background_opacity": 50
+}

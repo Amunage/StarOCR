@@ -1,0 +1,24 @@
+# 가상환경
+.scrvenv/
+scrvenv/
+
+# 캐시
+__pycache__/
+*.pyc
+
+# 빌드 결과물
+build/
+dist/
+*.egg-info/
+
+Tesseract-OCR/
+
+# 로그
+*.log
+
+# 환경설정
+.env
+
+# 배치파일
+.bat
+.7z
