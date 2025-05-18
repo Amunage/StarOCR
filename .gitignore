@@ -20,5 +20,5 @@ Tesseract-OCR/
 .env
 
 # 배치파일
-.bat
-.7z
+*.bat
+*.7z
