@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QPlainTextEdit, QMenu, QAction, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QRect
 from PyQt5.QtGui import QFont, QIcon
+from queue import Queue
 import time
 
 from area import get_area_coordinates
@@ -17,7 +18,35 @@ setting.load_custom_dict()
 from style import UIstyle
 import traceback
 
+ocr_queue = Queue(maxsize=100)  # 최대 100문장까지만 저장
+
 class OCRWorker(QThread):
+    def __init__(self):
+        super().__init__()
+        self._is_running = True
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        try:
+            sentences = capture_and_ocr()
+            for sentence in sentences:
+                if not self._is_running:
+                    break
+                if sentence.strip():
+                    if ocr_queue.full():
+                        ocr_queue.get()  # 가장 오래된 항목 제거
+                    ocr_queue.put(sentence.strip())
+                else:
+                    ocr_queue.put("")
+        except Exception as e:
+            tb = traceback.format_exc()
+            ocr_queue.put(f"❌ Error: {tb}")
+        finally:
+            self.quit()
+
+class TranslatorWorker(QThread):
     line_translated = pyqtSignal(str)
     error_occurred = pyqtSignal(str)
 
@@ -29,23 +58,26 @@ class OCRWorker(QThread):
         self._is_running = False
 
     def run(self):
-        try:
-            sentences = capture_and_ocr()
-            if sentences:
-                for sentence in sentences:
-                    if not self._is_running:
-                        break
-                    if not sentence.strip():
-                        self.line_translated.emit("")
-                        continue
-                    trans_line = nllbtrans.run_translation(sentence)
-                    trans_line = trans_line.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
-                    self.line_translated.emit(trans_line)
-        except Exception as e:
-            tb = traceback.format_exc()
-            self.line_translated.emit(f"❌ Error:\n{tb}")
-        finally:
-            self.quit()
+        while self._is_running:
+            if not ocr_queue.empty():
+                line = ocr_queue.get()
+                print(line)
+                if line.startswith("❌ Error:"):
+                    self.error_occurred.emit(line)
+                if line:
+                    try:
+                        trans = nllbtrans.run_translation(line)
+                        if not self._is_running:
+                            break
+                        self.line_translated.emit(trans)
+                    except Exception as e:
+                        tb = traceback.format_exc()
+                        self.line_translated.emit(f"❌ Error:\n{tb}")
+                else:
+                    self.line_translated.emit("")
+            else:
+                time.sleep(0.1)
+        self.quit()
 
 
 
@@ -244,34 +276,45 @@ class MainWindow(QWidget):
         menu.exec_(self.output_box.mapToGlobal(pos))
 
     def toggle_running(self):
-        self.is_running = not self.is_running
-        
-        try:
-            if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
-                self.worker.stop()
-        except RuntimeError:
-            pass
+        if not self.is_running:
+            self.is_running = True
 
-        if self.is_running:
+            self.trans_worker = TranslatorWorker()
+            self.trans_worker.line_translated.connect(self.append_output)
+            self.trans_worker.error_occurred.connect(self.append_output)
+            self.trans_worker.start()
+
             interval = setting.userdata.get("interval", 3000)
             self.ocr_timer.start(interval)
             self.append_output(f"▶ Start Translation. (Interval: {interval/1000} s)")
         else:
-            self.ocr_timer.stop()
-            self.is_running = False
-            self.append_output("■ Stop Translation.")
+            self.stop_ocr()
+            self.is_running = False  # ← 여기서 나중에 꺼지게!
+
+
 
     def stop_ocr(self):
-        if self.is_running:
-            self.ocr_timer.stop()
-            self.is_running = False
-            self.append_output("□ Stop Translation.")
+        was_running = self.is_running  # 현재 상태 저장
+
+        self.ocr_timer.stop()
+        self.is_running = False
+
         try:
-            if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
-                self.worker.stop()
+            if hasattr(self, 'ocr_worker') and self.ocr_worker and self.ocr_worker.isRunning():
+                self.ocr_worker.stop()
         except RuntimeError:
             pass
-        
+        try:
+            if hasattr(self, 'trans_worker') and self.trans_worker and self.trans_worker.isRunning():
+                self.trans_worker.stop()
+        except RuntimeError:
+            pass
+  
+        with ocr_queue.mutex:
+            ocr_queue.queue.clear()
+
+        if was_running:
+            self.append_output("■ Stop Translation.")
 
     def select_area(self):
         self.stop_ocr()
@@ -288,24 +331,28 @@ class MainWindow(QWidget):
             self.viewer = open_preview_window()
         except Exception as e:
             self.append_output(f"❌ Error: {e}")
-
+            
     def snapshot(self):
         self.stop_ocr()
+
+        # 번역 스레드가 없거나 이미 꺼졌다면 새로 실행
+        if not hasattr(self, 'trans_worker') or not self.trans_worker.isRunning():
+            self.trans_worker = TranslatorWorker()
+            self.trans_worker.line_translated.connect(self.append_output)
+            self.trans_worker.error_occurred.connect(self.append_output)
+            self.trans_worker.start()
+
         self.run_ocr_worker()
         self.append_output("▷ Snapshot")
 
+
     def run_ocr_worker(self):
         try:
-            if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
-                return
+            if not hasattr(self, 'ocr_worker') or not self.ocr_worker.isRunning():
+                self.ocr_worker = OCRWorker()
+                self.ocr_worker.start()
         except RuntimeError:
-            pass 
-            
-        self.worker = OCRWorker()
-        self.worker.line_translated.connect(self.append_output)
-        self.worker.error_occurred.connect(self.append_output)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.start()
+            pass
 
     def open_config_window(self):
         self.stop_ocr()
