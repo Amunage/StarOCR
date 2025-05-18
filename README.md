@@ -4,7 +4,6 @@
 - 영어 → 한국어 실시간 로컬번역 ([NLLB 모델 사용](https://huggingface.co/facebook/nllb-200-distilled-600M))
 - 이전에 번역한 문장은 넘기고 새로 인식한 문장만 번역합니다.
 
-![스크린샷](./screenshot/001.png)
 
 ## 사용 방법
 
