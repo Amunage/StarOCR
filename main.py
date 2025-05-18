@@ -15,6 +15,7 @@ setting.load_userdata()
 setting.load_custom_dict()
 
 from style import UIstyle
+import traceback
 
 class OCRWorker(QThread):
     line_translated = pyqtSignal(str)
@@ -32,17 +33,20 @@ class OCRWorker(QThread):
             sentences = capture_and_ocr()
             if sentences:
                 for sentence in sentences:
-                    if sentence.strip():
-                        trans_line = nllbtrans.run_translation(sentence)
-                        if not self._is_running:
-                            break
-                        self.line_translated.emit(trans_line)
-                    else:
+                    if not self._is_running:
+                        break
+                    if not sentence.strip():
                         self.line_translated.emit("")
+                        continue
+                    trans_line = nllbtrans.run_translation(sentence)
+                    trans_line = trans_line.encode("utf-8", errors="ignore").decode("utf-8", errors="ignore")
+                    self.line_translated.emit(trans_line)
         except Exception as e:
-            self.line_translated.emit(f"❌ Error: {e}")
+            tb = traceback.format_exc()
+            self.line_translated.emit(f"❌ Error:\n{tb}")
         finally:
             self.quit()
+
 
 
 class DragPassTextEdit(QPlainTextEdit):

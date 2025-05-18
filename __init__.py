@@ -15,22 +15,26 @@ loader.show()
 
 # 트레이스백
 
-open("error.log", "w").close()
+open("error.log", "w", encoding="utf-8").close()
 
 def exception_hook(exctype, value, tb):
-    with open("error.log", "a") as f:
-        f.write("".join(traceback.format_exception(exctype, value, tb)))
+    try:
+        with open("error.log", "a", encoding="utf-8", errors="ignore") as f:
+            f.write("".join(traceback.format_exception(exctype, value, tb)))
 
-    error_msg = "".join(traceback.format_exception(exctype, value, tb))
-    print("Unhandled exception:", error_msg)
+        error_msg = "".join(traceback.format_exception(exctype, value, tb))
+        print("Unhandled exception:", error_msg)
 
-    msgbox = QMessageBox()
-    msgbox.setWindowTitle("Error!")
-    msgbox.setText("Error during the Application")
-    msgbox.setDetailedText(error_msg)
-    msgbox.setIcon(QMessageBox.Critical)
-    msgbox.setWindowFlag(Qt.WindowStaysOnTopHint)
-    msgbox.exec_()
+        msgbox = QMessageBox()
+        msgbox.setWindowTitle("Error!")
+        msgbox.setText("Error during the Application")
+        msgbox.setDetailedText(error_msg)
+        msgbox.setIcon(QMessageBox.Critical)
+        msgbox.setWindowFlag(Qt.WindowStaysOnTopHint)
+        msgbox.exec_()
+
+    except Exception as e:
+        print("❌ 로그 기록 실패:", e)
 
 sys.excepthook = exception_hook
 

@@ -29,9 +29,13 @@ def exePath():
 
 def tesseract_path():
     base_path = tempPath()
+    tessdata_path = "./tessdata"
+    os.environ["TESSDATA_PREFIX"] = tessdata_path
+
+    
     default_path = f"{base_path}/Tesseract-OCR/tesseract.exe"
 
-    if getattr(sys, 'frozen', False):  # 번들된 실행파일인지 확인
+    if getattr(sys, 'frozen', False):
         internal_path = os.path.join(sys._MEIPASS, "tesseract", "tesseract.exe")
         if os.path.exists(internal_path):
             return internal_path

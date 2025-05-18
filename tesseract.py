@@ -7,6 +7,7 @@ from cleaner import clean_line
 
 import datapath
 pytesseract.pytesseract.tesseract_cmd = datapath.tesseract_path()
+pytesseract.pytesseract.get_errors = lambda _: ""  # 에러 출력을 무시해버림!
 
 
 # 기존 OCR 품질 평가 기준
