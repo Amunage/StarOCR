@@ -2,7 +2,9 @@ mss==9.0.2
 numpy==1.24.4
 opencv_python==4.11.0.86
 Pillow==10.4.0
+psutil==7.0.0
 PyQt5==5.15.11
 PyQt5_sip==12.15.0
 pytesseract==0.3.13
+torch==2.7.0
 transformers==4.46.3

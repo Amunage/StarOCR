@@ -217,7 +217,7 @@ class MainWindow(QWidget):
         toggle_action.triggered.connect(self.toggle_running)
         menu.addAction(toggle_action)
 
-        snapshot_action = QAction("Capture", self)
+        snapshot_action = QAction("Snapshot", self)
         snapshot_action.triggered.connect(self.snapshot)
         menu.addAction(snapshot_action)
 
