@@ -62,7 +62,7 @@ def extract_lines_with_avg_conf(img, lang, min_confidence=70):
 
 # 최적 전처리 이미지 선택
 def auto_preprocess_and_ocr(image):
-    lang = user_data.get("eng", "eng")
+    lang = user_data.get("tesseract_lang", "eng")
 
     best_score = -1
     best_text = ""
