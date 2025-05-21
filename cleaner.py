@@ -17,6 +17,9 @@ def custom_translate(new_lines):
         translated_lines.append(line)
     return translated_lines
 
+def repair_text(text):
+    fixed_text = text.replace("|", "I")
+    return fixed_text
 
 def normalize_line(line):
     line = line.lower()
@@ -45,8 +48,9 @@ def is_line_valid(line):
 def clean_line(text):
     global last_lines
 
-    # 전처리: 빈 줄 제거
-    clean_text = "\n".join([line.strip() for line in text.splitlines() if line.strip()])
+    # 전처리
+    retext = repair_text(text)
+    clean_text = "\n".join([line.strip() for line in retext.splitlines() if line.strip()])
     current_lines = clean_text.splitlines()
 
     # 유효한 줄만 필터링
