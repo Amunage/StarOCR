@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPixmap, QImage, QPainter, QPen
 from PyQt5.QtCore import Qt, QRect
 
 from capture import capture_monitor
-import setting
+from setting import save_user_data, user_data
 
 
 class ScreenSelector(QWidget):
@@ -80,8 +80,8 @@ def get_area_coordinates():
 
 
 def save_ocrarea_to_json(area_coords):
-    data = setting.userdata
-    data["ocrarea"] = list(area_coords)
-    setting.save_userdata(data)
+    data = user_data
+    data["ocr_area"] = list(area_coords)
+    save_user_data(data)
 
 

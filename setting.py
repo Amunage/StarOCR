@@ -4,34 +4,34 @@ import os
 user_path = f"./data/user.json"
 custom_dict_path = f"./data/custom_dict.json"
 
-userdata = {}
+user_data = {}
 custom_dict = {}
 
 
-def load_userdata():
-    global user_path, userdata
+def load_user_data():
+    global user_path, user_data
 
     if not os.path.exists(user_path):
         print("⚠️ user.json 파일이 없어요!")
-        userdata = {}
-        return userdata
+        user_data = {}
+        return user_data
     try:
         with open(user_path, "r", encoding="utf-8") as f:
-            userdata = json.load(f)
-            return userdata
+            user_data = json.load(f)
+            return user_data
         
     except json.JSONDecodeError:
         print("⚠️ user.json 파일이 손상되었어요!")
-        userdata = {}
-        return userdata
+        user_data = {}
+        return user_data
 
 
-def save_userdata(data):
-    global user_path, userdata
+def save_user_data(data):
+    global user_path, user_data
     try:
         with open(user_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        load_userdata()
+        load_user_data()
         print("✔️ 설정이 저장되었어요!")
     except Exception as e:
         print(f"❌ 저장 중 오류 발생: {e}")
@@ -53,3 +53,7 @@ def load_custom_dict():
         print("⚠️ custom_dict.json 파일이 손상되었어요!")
         custom_dict = {}
         return custom_dict
+    
+
+load_user_data()
+load_custom_dict()

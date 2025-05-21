@@ -1,84 +1,20 @@
 from PyQt5.QtWidgets import QWidget, QPlainTextEdit, QMenu, QAction, QVBoxLayout
-from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QRect
+from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtGui import QFont, QIcon
-from queue import Queue
 import time
 
 from area import get_area_coordinates
 from preview import open_preview_window
-from tesseract import capture_and_ocr
 from config import ConfigUI
 
-import nllbtrans
+from setting import user_data
 
-import setting
-setting.load_userdata()
-setting.load_custom_dict()
 
 from style import UIstyle
+import update
 import traceback
 
-ocr_queue = Queue(maxsize=100)  # 최대 100문장까지만 저장
-
-class OCRWorker(QThread):
-    def __init__(self):
-        super().__init__()
-        self._is_running = True
-
-    def stop(self):
-        self._is_running = False
-
-    def run(self):
-        try:
-            sentences = capture_and_ocr()
-            for sentence in sentences:
-                if not self._is_running:
-                    break
-                if sentence.strip():
-                    if ocr_queue.full():
-                        ocr_queue.get()  # 가장 오래된 항목 제거
-                    ocr_queue.put(sentence.strip())
-                else:
-                    ocr_queue.put("")
-        except Exception as e:
-            tb = traceback.format_exc()
-            ocr_queue.put(f"❌ Error: {tb}")
-        finally:
-            self.quit()
-
-class TranslatorWorker(QThread):
-    line_translated = pyqtSignal(str)
-    error_occurred = pyqtSignal(str)
-
-    def __init__(self):
-        super().__init__()
-        self._is_running = True
-
-    def stop(self):
-        self._is_running = False
-
-    def run(self):
-        while self._is_running:
-            if not ocr_queue.empty():
-                line = ocr_queue.get()
-                print(line)
-                if line.startswith("❌ Error:"):
-                    self.error_occurred.emit(line)
-                if line:
-                    try:
-                        trans = nllbtrans.run_translation(line)
-                        if not self._is_running:
-                            break
-                        self.line_translated.emit(trans)
-                    except Exception as e:
-                        tb = traceback.format_exc()
-                        self.line_translated.emit(f"❌ Error:\n{tb}")
-                else:
-                    self.line_translated.emit("")
-            else:
-                time.sleep(0.1)
-        self.quit()
-
+import workers
 
 
 class DragPassTextEdit(QPlainTextEdit):
@@ -139,13 +75,10 @@ class MainWindow(QWidget):
 
         self.setStyleSheet(UIstyle['container2'])
 
-        self.ocr_timer = QTimer()
-        self.ocr_timer.timeout.connect(self.run_ocr_worker)
-
-        data = setting.userdata
-        font_size = data.get("fontsize", 12)
-        font_color = data.get("fontcolor", "d4f4dd")
-        background_opacity = int(data.get("background_opacity", 70) * 2.55)
+        self.userdata = user_data
+        self.font_size = self.userdata.get("font_size", 12)
+        self.font_color = self.userdata.get("font_color", "d4f4dd")
+        self.background_opacity = int(self.userdata.get("background_opacity", 70) * 2.55)
 
         self.output_box = DragPassTextEdit(self)
         self.output_box.setReadOnly(True)
@@ -154,19 +87,22 @@ class MainWindow(QWidget):
         self.output_box.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.output_box.setStyleSheet(f"""
             QPlainTextEdit {{
-                background-color: rgba(43, 43, 43, {background_opacity});
-                color: #{font_color};
-                font-size: {font_size}pt;
+                background-color: rgba(43, 43, 43, {self.background_opacity});
+                color: #{self.font_color};
+                font-size: {self.font_size}pt;
                 border: 1px solid #555;
                 padding: 8px;
             }}
         """)
-        font = QFont("Consolas", font_size)
+        font = QFont("Consolas", self.font_size)
         self.output_box.setFont(font)
 
         layout = QVBoxLayout()
         layout.addWidget(self.output_box)
         self.setLayout(layout)
+
+        update_text = update.check_update()
+        self.append_output(f"★ StarOCR v{update.CURRENT_VERSION}\n{update_text}\n")
 
 
     def detect_resize_direction(self, pos):
@@ -241,13 +177,34 @@ class MainWindow(QWidget):
             self.resize_direction = None
             self.setCursor(Qt.ArrowCursor)
 
+    def enterEvent(self, event):
+        self.output_box.setStyleSheet(f"""
+            QPlainTextEdit {{
+                background-color: rgba(43, 43, 43, 1);
+                color: #{self.font_color};
+                font-size: {self.font_size}pt;
+                border: 1px solid #555;
+                padding: 8px;
+            }}
+        """)
+        super().enterEvent(event)
+
     def leaveEvent(self, event):
-        self.setCursor(Qt.ArrowCursor)
+        self.output_box.setStyleSheet(f"""
+            QPlainTextEdit {{
+                background-color: rgba(43, 43, 43, {self.background_opacity});
+                color: #{self.font_color};
+                font-size: {self.font_size}pt;
+                border: 1px solid #555;
+                padding: 8px;
+            }}
+        """)
+        super().leaveEvent(event)
 
 
     def show_context_menu(self, pos):
         menu = QMenu()
-        menu.setStyleSheet(UIstyle['menu'])  #  메뉴 스타일 적용
+        menu.setStyleSheet(UIstyle['menu'])
 
         toggle_action = QAction("Start" if not self.is_running else "Stop", self)
         toggle_action.triggered.connect(self.toggle_running)
@@ -265,7 +222,7 @@ class MainWindow(QWidget):
         test_action.triggered.connect(self.ocr_preview)
         menu.addAction(test_action)
 
-        config_action = QAction("Preference", self)
+        config_action = QAction("Preferences", self)
         config_action.triggered.connect(self.open_config_window)
         menu.addAction(config_action)
 
@@ -275,47 +232,67 @@ class MainWindow(QWidget):
 
         menu.exec_(self.output_box.mapToGlobal(pos))
 
+
     def toggle_running(self):
         if not self.is_running:
             self.is_running = True
-
-            self.trans_worker = TranslatorWorker()
-            self.trans_worker.line_translated.connect(self.append_output)
-            self.trans_worker.error_occurred.connect(self.append_output)
-            self.trans_worker.start()
-
-            interval = setting.userdata.get("interval", 3000)
-            self.ocr_timer.start(interval)
             self.append_output(f"▶ Start Translation.")
+            self.run_workers(run_loop=True)
         else:
             self.stop_ocr()
-            self.is_running = False  # ← 여기서 나중에 꺼지게!
 
 
+    def run_workers(self,run_loop):
+        try:
+            if not hasattr(self, 'ocr_worker') or not self.ocr_worker.isRunning():
+                if run_loop:
+                    self.ocr_worker = workers.OCRWorker(run_loop=True)
+                    self.ocr_worker.start()
+                else:
+                    self.ocr_worker = workers.OCRWorker(run_loop=False)
+                    self.ocr_worker.start()  
+
+            if not hasattr(self, 'trans_worker') or not self.trans_worker.isRunning():
+                self.trans_worker = workers.TranslatorWorker()
+                self.trans_worker.line_translated.connect(self.append_output)
+                self.trans_worker.error_occurred.connect(self.append_output)
+                self.trans_worker.start()
+
+        except RuntimeError as e:
+            tb = traceback.format_exc()
+            self.append_output(f"❌ Error: {tb}")
+            pass
 
     def stop_ocr(self):
-        was_running = self.is_running  # 현재 상태 저장
-
-        self.ocr_timer.stop()
-        self.is_running = False
+        if self.is_running:
+            self.is_running = False
+            self.append_output("■ Stop Translation.")
 
         try:
             if hasattr(self, 'ocr_worker') and self.ocr_worker and self.ocr_worker.isRunning():
                 self.ocr_worker.stop()
+                self.ocr_worker.quit()    
+                self.ocr_worker.wait()  
+
         except RuntimeError:
             pass
         try:
             if hasattr(self, 'trans_worker') and self.trans_worker and self.trans_worker.isRunning():
                 self.trans_worker.stop()
+                self.trans_worker.quit()
+                self.trans_worker.wait()
         except RuntimeError:
             pass
   
-        with ocr_queue.mutex:
-            ocr_queue.queue.clear()
+        with workers.ocr_queue.mutex:
+            workers.ocr_queue.queue.clear()
+              
+    def snapshot(self):
+        self.stop_ocr()
+        self.append_output("▷ Snapshot")
 
-        if was_running:
-            self.append_output("■ Stop Translation.")
-
+        self.run_workers(run_loop=False)
+     
     def select_area(self):
         self.stop_ocr()
         coords = get_area_coordinates()
@@ -331,34 +308,13 @@ class MainWindow(QWidget):
             self.viewer = open_preview_window()
         except Exception as e:
             self.append_output(f"❌ Error: {e}")
-            
-    def snapshot(self):
-        self.stop_ocr()
-
-        # 번역 스레드가 없거나 이미 꺼졌다면 새로 실행
-        if not hasattr(self, 'trans_worker') or not self.trans_worker.isRunning():
-            self.trans_worker = TranslatorWorker()
-            self.trans_worker.line_translated.connect(self.append_output)
-            self.trans_worker.error_occurred.connect(self.append_output)
-            self.trans_worker.start()
-
-        self.run_ocr_worker()
-        self.append_output("▷ Snapshot")
-
-
-    def run_ocr_worker(self):
-        try:
-            if not hasattr(self, 'ocr_worker') or not self.ocr_worker.isRunning():
-                self.ocr_worker = OCRWorker()
-                self.ocr_worker.start()
-        except RuntimeError:
-            pass
 
     def open_config_window(self):
         self.stop_ocr()
 
         self.config_window = ConfigUI()
         self.config_window.settings_applied.connect(self.apply_settings)
+        self.config_window.append_output.connect(self.append_output)
         self.config_window.show()
 
     def append_output(self, text, max_lines=100):
@@ -372,19 +328,19 @@ class MainWindow(QWidget):
             cursor.deleteChar()
 
     def apply_settings(self):
-        data = setting.load_userdata()
-        background_opacity = int(data.get("background_opacity", 70) * 2.55)
-        font_size = data.get("fontsize", 12)
-        font_color = data.get("fontcolor", "d4f4dd")
+        self.userdata = user_data
+        self.background_opacity = int(self.userdata.get("background_opacity", 70) * 2.55)
+        self.font_size = self.userdata.get("font_size", 12)
+        self.font_color = self.userdata.get("font_color", "d4f4dd")
 
         self.output_box.setStyleSheet(f"""
             QPlainTextEdit {{
-                background-color: rgba(43, 43, 43, {background_opacity});
-                color: #{font_color};
-                font-size: {font_size}pt;
+                background-color: rgba(43, 43, 43, {self.background_opacity});
+                color: #{self.font_color};
+                font-size: {self.font_size}pt;
                 border: 1px solid #555;
                 padding: 8px;
             }}
         """)
-        
+
         self.append_output(f"✔️ Save Setting")

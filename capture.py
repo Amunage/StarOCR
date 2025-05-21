@@ -3,7 +3,7 @@ from PIL import Image, ImageEnhance
 
 import numpy as np
 
-import setting
+from setting import user_data
 
 def capture_monitor():
     with mss.mss() as sct:
@@ -19,8 +19,8 @@ def capture_monitor():
         return dark_img
 
 def capture_area():
-    data = setting.userdata
-    area = data.get("ocrarea", None)
+    data = user_data
+    area = data.get("ocr_area", None)
     if not area:
         raise ValueError("저장된 OCR 영역이 없어요!")
 

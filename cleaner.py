@@ -1,6 +1,6 @@
 import re
 from difflib import SequenceMatcher
-import setting
+from setting import custom_dict
 
 last_lines = []
 MAX_HISTORY = 10
@@ -9,11 +9,11 @@ MAX_HISTORY = 10
 def custom_translate(new_lines):
     translated_lines = []
     # 긴 단어부터 먼저 처리
-    sorted_dict = sorted(setting.custom_dict.items(), key=lambda x: -len(x[0]))
+    sorted_dict = sorted(custom_dict.items(), key=lambda x: -len(x[0]))
     
     for line in new_lines:
         for eng, kor in sorted_dict:
-            line = re.sub(rf'\b{re.escape(eng)}\b', kor, line, flags=re.IGNORECASE)
+            line = re.sub(rf'\b{re.escape(eng)}\b', f'__{kor}__', line, flags=re.IGNORECASE)
         translated_lines.append(line)
     return translated_lines
 
@@ -64,4 +64,5 @@ def clean_line(text):
     last_lines[:] = (last_lines + new_sentences)[-MAX_HISTORY:]
 
     custom_sentences = custom_translate(new_sentences)
+    
     return custom_sentences

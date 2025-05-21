@@ -1,13 +1,13 @@
 {
-    "ocrarea": [
-        101,
-        704,
-        557,
-        155
+    "ocr_area": [
+        566,
+        556,
+        676,
+        337
     ],
-    "fontsize": 12,
-    "fontcolor": "d4f4dd",
-    "interval": 3000,
+    "font_size": 12,
+    "font_color": "d4f4dd",
     "background_opacity": 50,
-    "performence": 1
+    "thread_count": 2,
+    "tesseract_lang": "eng"
 }

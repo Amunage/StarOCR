@@ -25,3 +25,6 @@ screenshot/
 *.bat
 *.7z
 *.png
+
+# 스펙파일
+*.spec

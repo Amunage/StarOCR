@@ -4,6 +4,7 @@ from collections import defaultdict
 import re
 from capture import capture_area
 from cleaner import clean_line
+from setting import user_data
 
 import datapath
 pytesseract.pytesseract.tesseract_cmd = datapath.tesseract_path()
@@ -60,7 +61,9 @@ def extract_lines_with_avg_conf(img, lang, min_confidence=70):
 
 
 # 최적 전처리 이미지 선택
-def auto_preprocess_and_ocr(image, lang="eng"):
+def auto_preprocess_and_ocr(image):
+    lang = user_data.get("eng", "eng")
+
     best_score = -1
     best_text = ""
     best_image = None

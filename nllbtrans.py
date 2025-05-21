@@ -1,25 +1,5 @@
 from transformers import pipeline
 import torch
-import os
-
-import setting
-
-setting.load_userdata()
-thread_count = setting.userdata.get("performence", 1)
-print(f"Thread Count : {thread_count}")
-
-os.environ["OMP_NUM_THREADS"] = f"{thread_count}"
-os.environ["MKL_NUM_THREADS"] = f"{thread_count}"
-torch.set_num_threads(thread_count)
-torch.set_num_interop_threads(thread_count)
-
-# import psutil
-# p = psutil.Process(os.getpid())
-# p.cpu_affinity([0])
-
-# GPU 제한 (있는 경우)
-if torch.cuda.is_available():
-    torch.cuda.set_per_process_memory_fraction(0.5, 0)
 
 
 translator = pipeline(
@@ -35,7 +15,8 @@ translator = pipeline(
 
 def run_translation(text):
     output = translator(text)
-    translatedText = output[0]['translation_text']
+    clean_output = output[0]['translation_text']
+    translatedText = clean_output.replace('__', '')
     return translatedText
 
 
