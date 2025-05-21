@@ -72,7 +72,7 @@ class TranslatorWorker(QThread):
                 if not self._is_running:
                     break
                 line = ocr_queue.get()
-                # print(f"{ocr_queue.qsize()}:{line}")
+                print(f"{ocr_queue.qsize()}:{line}")
                 if line.startswith("❌ Error:"):
                     self.error_occurred.emit(line)
                 if line:
